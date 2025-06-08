@@ -23,7 +23,7 @@ export default async function handler(req, res) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": "Basic " + process.env.PAYCONEX_API_KEY
+        "Authorization": process.env.PAYCONEX_API_KEY
       },
       body: JSON.stringify({
         etoken: token,
@@ -36,7 +36,7 @@ export default async function handler(req, res) {
     const result = await response.json();
 
     // if (response.ok) {
-      return res.status(200).json({ success: true, result, auth: "Basic " + process.env.PAYCONEX_API_KEY });
+      return res.status(200).json({ success: true, result, auth: process.env.PAYCONEX_API_KEY });
     // } else {
     //   return res.status(response.status).json({ error: result });
     // }
