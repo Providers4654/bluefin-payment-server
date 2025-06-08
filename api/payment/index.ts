@@ -1,17 +1,18 @@
 export default async function handler(req, res) {
-if (req.method === "OPTIONS") {
-  res.setHeader("Access-Control-Allow-Credentials", "true");
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization");
-  return res.status(200).end(); // ✅ VERY IMPORTANT
-}
+  if (req.method === "OPTIONS") {
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+    res.setHeader("Access-Control-Allow-Origin", "https://www.mtnhlth.com");
+    res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    return res.status(200).end(); // ✅ MUST return here
+  }
+
+  // ✅ CORS header for actual POST request
+  res.setHeader("Access-Control-Allow-Origin", "https://www.mtnhlth.com");
 
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
-
-  res.setHeader("Access-Control-Allow-Origin", "*");
 
   const { token, amount, name } = req.body;
 
