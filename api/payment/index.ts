@@ -19,7 +19,7 @@ export default async function handler(req, res) {
   const { token, amount, name } = req.body;
 
   try {
-    const response = await fetch("https://secure.payconex.net/pay/qsapi/3.8", {
+    const response = await fetch("https://secure.payconex.net/pay", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
