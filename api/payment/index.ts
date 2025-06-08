@@ -2,7 +2,7 @@ export default async function handler(req, res) {
   const origin = req.headers.origin;
 
   // ✅ CORS headers
-  res.setHeader("Access-Control-Allow-Origin", ["https://www.mtnhlth.com", "https://mtnhlth.com"]);
+  res.setHeader("Access-Control-Allow-Origin", "https://www.mtnhlth.com");
   res.setHeader("Access-Control-Allow-Credentials", "true");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
