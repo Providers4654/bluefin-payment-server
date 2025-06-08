@@ -1,3 +1,4 @@
+// Trigger redeploy
 export default async function handler(req, res) {
   // ✅ Handle CORS preflight
   if (req.method === "OPTIONS") {
