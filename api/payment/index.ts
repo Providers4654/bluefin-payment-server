@@ -1,4 +1,7 @@
 export default async function handler(req, res) {
+  console.log("Handling request from origin:", req.headers.origin);
+
+  
   const allowedOrigin = "https://www.mtnhlth.com";
 
   // Handle preflight request
