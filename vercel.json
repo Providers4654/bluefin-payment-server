@@ -5,8 +5,8 @@
       "runtime": "@vercel/node@3.0.0"
     }
   },
-  "builds": [],
   "routes": [
-    { "src": "/api/.*", "dest": "/api/$1" }
-  ]
+    { "src": "/api/(.*)", "dest": "/api/$1" }
+  ],
+  "outputDirectory": "."
 }
