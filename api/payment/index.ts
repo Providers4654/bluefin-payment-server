@@ -1,7 +1,7 @@
 export default async function handler(req, res) {
   const allowedOrigin = "https://www.mtnhlth.com";
 
-  // Handle preflight CORS requests
+  // ✅ Handle CORS preflight
   if (req.method === "OPTIONS") {
     res.setHeader("Access-Control-Allow-Credentials", "true");
     res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
@@ -10,7 +10,7 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  // Handle actual requests
+  // ✅ Set CORS header for actual POST requests
   res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
 
   if (req.method !== "POST") {
