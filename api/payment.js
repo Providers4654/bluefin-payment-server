@@ -1,24 +1,45 @@
-module.exports = async (req, res) => {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+export default async function handler(req, res) {
+  // ✅ Handle CORS preflight
+  if (req.method === "OPTIONS") {
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+    res.setHeader("Access-Control-Allow-Origin", "*"); // Or lock to "https://www.mtnhlth.com"
+    res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization");
+    return res.status(200).end();
   }
 
-  const authHeader = req.headers.authorization;
-  const expected = `Bearer ${process.env.PAYCONEX_API_KEY}`;
-
-  if (!authHeader || authHeader !== expected) {
-    return res.status(401).json({ error: 'Unauthorized' });
+  // ✅ Main logic (only for POST)
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { card_number, amount } = req.body;
+  res.setHeader("Access-Control-Allow-Origin", "*"); // You can lock this down later
 
-  if (!card_number || !amount) {
-    return res.status(400).json({ error: 'Missing required fields' });
+  const { token, amount, name } = req.body;
+
+  try {
+    const response = await fetch("https://api.payconex.net/pay", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Basic " + process.env.PAYCONEX_API_KEY
+      },
+      body: JSON.stringify({
+        eToken: token,
+        amount: amount,
+        name: name,
+        currency: "usd"
+      })
+    });
+
+    const result = await response.json();
+
+    if (response.ok) {
+      return res.status(200).json({ success: true, result });
+    } else {
+      return res.status(response.status).json({ error: result });
+    }
+  } catch (err) {
+    return res.status(500).json({ error: "Server error", details: err.message });
   }
-
-  return res.status(200).json({
-    message: 'Payment request received',
-    card_last4: card_number.slice(-4),
-    amount: amount
-  });
-};
+}
