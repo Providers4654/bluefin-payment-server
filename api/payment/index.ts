@@ -1,23 +1,22 @@
 export default async function handler(req, res) {
+  // Log origin for debugging
   console.log("Handling request from origin:", req.headers.origin);
 
-  
-  const allowedOrigin = "https://www.mtnhlth.com";
+  // Dynamically use incoming origin
+  const origin = req.headers.origin;
 
-  // Handle preflight request
+  // ✅ Always set CORS headers
+  res.setHeader("Access-Control-Allow-Origin", origin || "*");
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+  // ✅ Handle preflight request
   if (req.method === "OPTIONS") {
-    res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
-    res.setHeader("Access-Control-Allow-Credentials", "true");
-    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
     return res.status(200).end();
   }
 
-  // Set CORS headers for POST and other requests
-  res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
-  res.setHeader("Access-Control-Allow-Credentials", "true");
-  res.setHeader("Content-Type", "application/json");
-
+  // ✅ Only allow POST
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
