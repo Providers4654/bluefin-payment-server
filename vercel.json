@@ -1,7 +1,10 @@
 {
   "version": 2,
   "functions": {
-    "api/*.[jt]s": {
+    "api/**/*.ts": {
+      "runtime": "@vercel/node@3.0.0"
+    },
+    "api/**/*.js": {
       "runtime": "@vercel/node@3.0.0"
     }
   },
