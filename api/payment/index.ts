@@ -1,4 +1,4 @@
-eexport default async function handler(req, res) {
+export default async function handler(req, res) {
   const origin = req.headers.origin;
 
   // ✅ CORS headers
