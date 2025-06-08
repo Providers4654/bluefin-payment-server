@@ -1,17 +1,19 @@
 export default async function handler(req, res) {
   const allowedOrigin = "https://www.mtnhlth.com";
 
+  // Handle preflight request
   if (req.method === "OPTIONS") {
-    res.writeHead(200, {
-      "Access-Control-Allow-Credentials": "true",
-      "Access-Control-Allow-Origin": allowedOrigin,
-      "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type,Authorization"
-    });
-    return res.end();
+    res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    return res.status(200).end();
   }
 
+  // Set CORS headers for POST and other requests
   res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.setHeader("Content-Type", "application/json");
 
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -24,14 +26,14 @@ export default async function handler(req, res) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: "Basic " + process.env.PAYCONEX_API_KEY
+        Authorization: "Basic " + process.env.PAYCONEX_API_KEY,
       },
       body: JSON.stringify({
         eToken: token,
         amount: amount,
         name: name,
-        currency: "usd"
-      })
+        currency: "usd",
+      }),
     });
 
     const result = await response.json();
