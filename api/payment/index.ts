@@ -28,8 +28,8 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         eToken: token,
-        amount: amount,
-        name: name,
+        amount,
+        name,
         currency: "usd"
       })
     });
