@@ -1,9 +1,7 @@
 {
-  "version": 2,
-  "builds": [
-    { "src": "api/payment.js", "use": "@vercel/node" }
-  ],
-  "routes": [
-    { "src": "/api/payment", "dest": "api/payment.js" }
-  ]
+  "functions": {
+    "api/*.js": {
+      "runtime": "nodejs18.x"
+    }
+  }
 }
