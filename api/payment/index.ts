@@ -36,7 +36,7 @@ export default async function handler(req, res) {
     const result = await response.json();
 
     // if (response.ok) {
-      return res.status(200).json({ success: true, result, response });
+      return res.status(200).json({ success: true, result, auth: "Basic " + process.env.PAYCONEX_API_KEY });
     // } else {
     //   return res.status(response.status).json({ error: result });
     // }
