@@ -1,14 +1,17 @@
 export default async function handler(req, res) {
+  const allowedOrigin = "https://www.mtnhlth.com";
+
+  // Handle preflight CORS requests
   if (req.method === "OPTIONS") {
     res.setHeader("Access-Control-Allow-Credentials", "true");
-    res.setHeader("Access-Control-Allow-Origin", "https://www.mtnhlth.com");
+    res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
     res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-    return res.status(200).end(); // ✅ MUST return here
+    return res.status(200).end();
   }
 
-  // ✅ CORS header for actual POST request
-  res.setHeader("Access-Control-Allow-Origin", "https://www.mtnhlth.com");
+  // Handle actual requests
+  res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
 
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -25,8 +28,8 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         eToken: token,
-        amount: amount,
-        name: name,
+        amount,
+        name,
         currency: "usd"
       })
     });
