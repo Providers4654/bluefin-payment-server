@@ -1,4 +1,7 @@
 export default async function handler(req, res) {
+  console.log("✅ test-payment.ts loaded");
+
+  
   const origin = req.headers.origin;
 
   res.setHeader("Access-Control-Allow-Origin", origin || "*");
