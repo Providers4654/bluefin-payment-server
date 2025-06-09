@@ -49,7 +49,7 @@ if (!token || !amount) {
     formData.append("transaction_amount", amount);
     formData.append("etoken", token);
     formData.append("response_format", "JSON");
-    if (name) formData.append("name", name);
+    if (name) formData.append("first_name", name);
 
     console.log("🔁 Sending to PayConex:", formData.toString());
 
