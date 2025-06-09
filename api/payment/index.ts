@@ -21,25 +21,24 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  // 🔁 Manual body parsing for URL-encoded data
-  let body = "";
-  await new Promise((resolve, reject) => {
-    req.on("data", chunk => {
-      body += chunk;
-    });
-    req.on("end", resolve);
-    req.on("error", reject);
+// 🔁 Manual body parsing for URL-encoded data
+let body = "";
+await new Promise((resolve, reject) => {
+  req.on("data", chunk => {
+    body += chunk.toString();
   });
+  req.on("end", resolve);
+  req.on("error", reject);
+});
 
-  const parsed = parse(body);
-  const eToken = parsed.eToken;
-  const amount = parsed.amount;
-  const name = parsed.name;
-  const token = eToken;
+const parsed = parse(body);
+const token = parsed.eToken;
+const amount = parsed.amount;
+const name = parsed.name;
 
-  if (!token || !amount) {
-    return res.status(400).json({ error: "Missing token or amount" });
-  }
+if (!token || !amount) {
+  return res.status(400).json({ error: "Missing token or amount" });
+}
 
   try {
     const formData = new URLSearchParams();
