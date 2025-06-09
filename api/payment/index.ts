@@ -13,11 +13,13 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { token, amount, name } = req.body;
+const { eToken, amount, name } = req.body;
+const token = eToken; // alias for backward compatibility
 
-  if (!token || !amount) {
-    return res.status(400).json({ error: "Missing token or amount" });
-  }
+if (!token || !amount) {
+  return res.status(400).json({ error: "Missing token or amount" });
+}
+
 
   try {
     const formData = new URLSearchParams();
@@ -30,6 +32,8 @@ export default async function handler(req, res) {
     formData.append("response_format", "JSON");
     if (name) formData.append("name", name);
 
+     console.log("🔁 Sending to PayConex:", formData.toString());
+    
     const response = await fetch("https://secure.payconex.net/api/qsapi/3.8", {
       method: "POST",
       headers: {
@@ -39,6 +43,8 @@ export default async function handler(req, res) {
     });
 
     const result = await response.json();
+
+    console.log("✅ PayConex response:", result);
 
     if (result.error) {
       return res.status(400).json({ success: false, result });
