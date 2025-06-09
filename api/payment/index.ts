@@ -1,3 +1,11 @@
+import { parse } from "querystring";
+
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
 export default async function handler(req, res) {
   // ✅ CORS setup
   res.setHeader("Access-Control-Allow-Origin", "https://www.mtnhlth.com");
@@ -13,13 +21,25 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-const { eToken, amount, name } = req.body;
-const token = eToken; // alias for backward compatibility
+  // 🔁 Manual body parsing for URL-encoded data
+  let body = "";
+  await new Promise((resolve, reject) => {
+    req.on("data", chunk => {
+      body += chunk;
+    });
+    req.on("end", resolve);
+    req.on("error", reject);
+  });
 
-if (!token || !amount) {
-  return res.status(400).json({ error: "Missing token or amount" });
-}
+  const parsed = parse(body);
+  const eToken = parsed.eToken;
+  const amount = parsed.amount;
+  const name = parsed.name;
+  const token = eToken;
 
+  if (!token || !amount) {
+    return res.status(400).json({ error: "Missing token or amount" });
+  }
 
   try {
     const formData = new URLSearchParams();
@@ -32,8 +52,8 @@ if (!token || !amount) {
     formData.append("response_format", "JSON");
     if (name) formData.append("name", name);
 
-     console.log("🔁 Sending to PayConex:", formData.toString());
-    
+    console.log("🔁 Sending to PayConex:", formData.toString());
+
     const response = await fetch("https://secure.payconex.net/api/qsapi/3.8", {
       method: "POST",
       headers: {
@@ -43,7 +63,6 @@ if (!token || !amount) {
     });
 
     const result = await response.json();
-
     console.log("✅ PayConex response:", result);
 
     if (result.error) {
