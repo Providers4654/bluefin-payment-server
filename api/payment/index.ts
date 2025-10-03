@@ -2,7 +2,9 @@ import { parse } from "querystring";
 import type { IncomingMessage, ServerResponse } from "http";
 
 export const config = {
-  api: { bodyParser: false },
+  api: {
+    bodyParser: false,
+  },
 };
 
 // normalize helper
@@ -11,10 +13,16 @@ function normalize(field: string | string[] | undefined): string | undefined {
   return Array.isArray(field) ? field[0] : field;
 }
 
-// extend res with json + status
+// extend res with json + status like Next.js
 function enhanceRes(res: ServerResponse) {
-  (res as any).status = (code: number) => { res.statusCode = code; return res; };
-  (res as any).json = (obj: any) => { res.setHeader("Content-Type", "application/json"); res.end(JSON.stringify(obj)); };
+  (res as any).status = (code: number) => {
+    res.statusCode = code;
+    return res;
+  };
+  (res as any).json = (obj: any) => {
+    res.setHeader("Content-Type", "application/json");
+    res.end(JSON.stringify(obj));
+  };
   return res as ServerResponse & { status: (c: number) => any; json: (o: any) => void };
 }
 
@@ -24,12 +32,13 @@ export default async function handler(
 ) {
   const res = enhanceRes(resRaw);
 
-  // ✅ Allow multiple origins (live + sandbox + bare domain)
+  // ✅ Allow multiple origins (live + sandbox preview + bare domain)
   const allowedOrigins = [
     "https://mtnhlth.com",
     "https://www.mtnhlth.com",
     "https://bluefin-payment-server-git-sandbox-providers4654s-projects.vercel.app"
   ];
+
   const origin = req.headers.origin || "";
   if (allowedOrigins.includes(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
@@ -39,10 +48,15 @@ export default async function handler(
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
-  if (req.method === "OPTIONS") return res.status(200).end();
-  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
 
-  // 🔁 Parse body
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  // 🔁 Manual body parsing
   let body = "";
   await new Promise<void>((resolve, reject) => {
     req.on("data", chunk => { body += chunk.toString(); });
@@ -54,30 +68,27 @@ export default async function handler(
   const token = normalize(parsed.eToken);
   const amount = normalize(parsed.amount);
   const name = normalize(parsed.name);
-  const mode = normalize(parsed.mode) || "live"; // 👈 NEW: default to live
+  const mode = normalize(parsed.mode) || "live"; // 👈 new: allow sandbox/live toggle
 
   if (!token || !amount) {
     return res.status(400).json({ error: "Missing token or amount" });
   }
 
   try {
-    // 🔀 Pick credentials + endpoint
-    const isSandbox = mode === "sandbox";
-    const endpoint = isSandbox
-      ? "https://sandbox.payconex.net/api/qsapi/3.8/"
-      : "https://secure.payconex.net/api/qsapi/3.8/";
+    // ✅ Choose credentials & endpoint based on mode
+    let endpoint = "https://secure.payconex.net/api/qsapi/3.8/";
+    let accountId = process.env.PAYCONEX_ACCOUNT_ID || "";
+    let apiKey = process.env.PAYCONEX_API_KEY || "";
 
-    const accountId = isSandbox
-      ? process.env.PAYCONEX_SANDBOX_ACCOUNT_ID
-      : process.env.PAYCONEX_ACCOUNT_ID;
-
-    const apiKey = isSandbox
-      ? process.env.PAYCONEX_SANDBOX_API_KEY
-      : process.env.PAYCONEX_API_KEY;
+    if (mode === "sandbox") {
+      endpoint = "https://sandbox.payconex.net/api/qsapi/3.8/";
+      accountId = process.env.PAYCONEX_SANDBOX_ACCOUNT_ID || "";
+      apiKey = `${process.env.PAYCONEX_SANDBOX_API_KEY_ID}:${process.env.PAYCONEX_SANDBOX_API_KEY_SECRET}`;
+    }
 
     const formData = new URLSearchParams();
-    formData.append("account_id", accountId || "");
-    formData.append("api_accesskey", apiKey || "");
+    formData.append("account_id", accountId);
+    formData.append("api_accesskey", apiKey);
     formData.append("tender_type", "CARD");
     formData.append("transaction_type", "SALE");
     formData.append("transaction_amount", amount);
@@ -96,9 +107,11 @@ export default async function handler(
     const result = await response.json();
     console.log("✅ PayConex response:", result);
 
-    if (result.error) return res.status(400).json({ success: false, result });
-    return res.status(200).json({ success: true, result });
+    if (result.error) {
+      return res.status(400).json({ success: false, result });
+    }
 
+    return res.status(200).json({ success: true, result });
   } catch (err: any) {
     console.error("❌ Server error:", err);
     return res.status(500).json({ error: "Server error", details: err.message });
