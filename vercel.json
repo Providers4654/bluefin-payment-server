@@ -2,14 +2,13 @@
   "version": 2,
   "functions": {
     "api/**/*.ts": {
-      "runtime": "@vercel/node@3.0.0"
+      "runtime": "nodejs22.x"
     },
     "api/**/*.js": {
-      "runtime": "@vercel/node@3.0.0"
+      "runtime": "nodejs22.x"
     }
   },
   "routes": [
     { "src": "/api/(.*)", "dest": "/api/$1" }
-  ],
-  "outputDirectory": "."
+  ]
 }
