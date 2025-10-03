@@ -1,12 +1,19 @@
 import { parse } from "querystring";
+import type { NextApiRequest, NextApiResponse } from "next";
 
 export const config = {
   api: {
-    bodyParser: false,
+    bodyParser: false, // because we’re manually parsing URL-encoded
   },
 };
 
-export default async function handler(req, res) {
+// ✅ Helper: normalize string | string[] | undefined → string | undefined
+function normalize(field: string | string[] | undefined): string | undefined {
+  if (!field) return undefined;
+  return Array.isArray(field) ? field[0] : field;
+}
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   // ✅ CORS setup
   res.setHeader("Access-Control-Allow-Origin", "https://www.mtnhlth.com");
   res.setHeader("Access-Control-Allow-Credentials", "true");
@@ -21,29 +28,31 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-// 🔁 Manual body parsing for URL-encoded data
-let body = "";
-await new Promise((resolve, reject) => {
-  req.on("data", chunk => {
-    body += chunk.toString();
+  // 🔁 Manual body parsing for URL-encoded data
+  let body = "";
+  await new Promise<void>((resolve, reject) => {
+    req.on("data", chunk => {
+      body += chunk.toString();
+    });
+    req.on("end", () => resolve());
+    req.on("error", err => reject(err));
   });
-  req.on("end", resolve);
-  req.on("error", reject);
-});
 
-const parsed = parse(body);
-const token = parsed.eToken;
-const amount = parsed.amount;
-const name = parsed.name;
+  const parsed = parse(body);
 
-if (!token || !amount) {
-  return res.status(400).json({ error: "Missing token or amount" });
-}
+  // ✅ Normalize all fields
+  const token = normalize(parsed.eToken);
+  const amount = normalize(parsed.amount);
+  const name = normalize(parsed.name);
+
+  if (!token || !amount) {
+    return res.status(400).json({ error: "Missing token or amount" });
+  }
 
   try {
     const formData = new URLSearchParams();
-    formData.append("account_id", process.env.PAYCONEX_ACCOUNT_ID);
-    formData.append("api_accesskey", process.env.PAYCONEX_API_KEY);
+    formData.append("account_id", process.env.PAYCONEX_ACCOUNT_ID || "");
+    formData.append("api_accesskey", process.env.PAYCONEX_API_KEY || "");
     formData.append("tender_type", "CARD");
     formData.append("transaction_type", "SALE");
     formData.append("transaction_amount", amount);
@@ -53,12 +62,10 @@ if (!token || !amount) {
 
     console.log("🔁 Sending to PayConex:", formData.toString());
 
-    const response = await fetch("https://secure.payconex.net/api/qsapi/3.8", {
+    const response = await fetch("https://secure.payconex.net/api/qsapi/3.8/", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded"
-      },
-      body: formData.toString()
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: formData.toString(),
     });
 
     const result = await response.json();
@@ -69,10 +76,8 @@ if (!token || !amount) {
     }
 
     return res.status(200).json({ success: true, result });
-  } catch (err) {
-    return res.status(500).json({
-      error: "Server error",
-      details: err.message
-    });
+  } catch (err: any) {
+    console.error("❌ Server error:", err);
+    return res.status(500).json({ error: "Server error", details: err.message });
   }
 }
