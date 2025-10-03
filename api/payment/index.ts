@@ -64,6 +64,12 @@ export default async function handler(
   }
 
   try {
+    // ✅ Pick endpoint based on environment
+    const endpoint =
+      process.env.PAYCONEX_ENV === "live"
+        ? "https://secure.payconex.net/api/qsapi/3.8/"
+        : "https://sandbox.payconex.net/api/qsapi/3.8/";
+
     const formData = new URLSearchParams();
     formData.append("account_id", process.env.PAYCONEX_ACCOUNT_ID || "");
     formData.append("api_accesskey", process.env.PAYCONEX_API_KEY || "");
@@ -74,9 +80,9 @@ export default async function handler(
     formData.append("response_format", "JSON");
     if (name) formData.append("first_name", name);
 
-    console.log("🔁 Sending to PayConex:", formData.toString());
+    console.log(`🔁 Sending to PayConex [${process.env.PAYCONEX_ENV}]`, formData.toString());
 
-    const response = await fetch("https://secure.payconex.net/api/qsapi/3.8/", {
+    const response = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: formData.toString(),
