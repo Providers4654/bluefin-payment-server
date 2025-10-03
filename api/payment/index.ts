@@ -23,10 +23,7 @@ function enhanceRes(res: ServerResponse) {
     res.setHeader("Content-Type", "application/json");
     res.end(JSON.stringify(obj));
   };
-  return res as ServerResponse & {
-    status: (c: number) => any;
-    json: (o: any) => void;
-  };
+  return res as ServerResponse & { status: (c: number) => any; json: (o: any) => void };
 }
 
 export default async function handler(
@@ -35,7 +32,7 @@ export default async function handler(
 ) {
   const res = enhanceRes(resRaw);
 
-  // ✅ Allow multiple origins (live + sandbox preview + bare domain)
+  // ✅ Allow multiple origins (Squarespace + sandbox)
   const allowedOrigins = [
     "https://mtnhlth.com",
     "https://www.mtnhlth.com",
@@ -71,34 +68,34 @@ export default async function handler(
   const token = normalize(parsed.eToken);
   const amount = normalize(parsed.amount);
   const name = normalize(parsed.name);
+  const requestedMode = normalize(parsed.mode); // ✅ from frontend toggle
 
   if (!token || !amount) {
     return res.status(400).json({ error: "Missing token or amount" });
   }
 
   try {
-    // ✅ Decide endpoint + credentials based on environment
-    const env = process.env.PAYCONEX_ENV || "live";
+    // ✅ Decide environment from toggle
+    const env = requestedMode || process.env.PAYCONEX_ENV || "live";
+    const endpoint =
+      env === "sandbox"
+        ? "https://sandbox.payconex.net/api/qsapi/3.8/"
+        : "https://secure.payconex.net/api/qsapi/3.8/";
 
-    let accountId = "";
-    let apiKey = "";
-    let endpoint = "";
+    // ✅ Pick credentials based on env
+    const accountId =
+      env === "sandbox"
+        ? process.env.PAYCONEX_SANDBOX_ACCOUNT_ID
+        : process.env.PAYCONEX_ACCOUNT_ID;
 
-    if (env === "sandbox") {
-      accountId = process.env.PAYCONEX_SANDBOX_ACCOUNT_ID || "";
-      const id = process.env.PAYCONEX_SANDBOX_API_KEY_ID || "";
-      const secret = process.env.PAYCONEX_SANDBOX_API_KEY_SECRET || "";
-      apiKey = `${id}:${secret}`;
-      endpoint = "https://sandbox.payconex.net/api/qsapi/3.8/";
-    } else {
-      accountId = process.env.PAYCONEX_ACCOUNT_ID || "";
-      apiKey = process.env.PAYCONEX_API_KEY || "";
-      endpoint = "https://secure.payconex.net/api/qsapi/3.8/";
-    }
+    const apiKey =
+      env === "sandbox"
+        ? `${process.env.PAYCONEX_SANDBOX_API_KEY_ID}:${process.env.PAYCONEX_SANDBOX_API_KEY_SECRET}`
+        : process.env.PAYCONEX_API_KEY;
 
     const formData = new URLSearchParams();
-    formData.append("account_id", accountId);
-    formData.append("api_accesskey", apiKey);
+    formData.append("account_id", accountId || "");
+    formData.append("api_accesskey", apiKey || "");
     formData.append("tender_type", "CARD");
     formData.append("transaction_type", "SALE");
     formData.append("transaction_amount", amount);
