@@ -23,7 +23,10 @@ function enhanceRes(res: ServerResponse) {
     res.setHeader("Content-Type", "application/json");
     res.end(JSON.stringify(obj));
   };
-  return res as ServerResponse & { status: (c: number) => any; json: (o: any) => void };
+  return res as ServerResponse & {
+    status: (c: number) => any;
+    json: (o: any) => void;
+  };
 }
 
 export default async function handler(
@@ -81,9 +84,10 @@ export default async function handler(
         ? process.env.PAYCONEX_SANDBOX_ACCOUNT_ID
         : process.env.PAYCONEX_ACCOUNT_ID;
 
+    // Sandbox uses ID + Secret combo
     const apiKey =
       mode === "sandbox"
-        ? process.env.PAYCONEX_SANDBOX_API_KEY
+        ? `${process.env.PAYCONEX_SANDBOX_API_KEY_ID}:${process.env.PAYCONEX_SANDBOX_API_KEY_SECRET}`
         : process.env.PAYCONEX_API_KEY;
 
     const formData = new URLSearchParams();
