@@ -1,20 +1,38 @@
 import { parse } from "querystring";
-import type { NextApiRequest, NextApiResponse } from "next";
+import type { IncomingMessage, ServerResponse } from "http";
 
 export const config = {
   api: {
-    bodyParser: false, // because we’re manually parsing URL-encoded
+    bodyParser: false,
   },
 };
 
-// ✅ Helper: normalize string | string[] | undefined → string | undefined
+// normalize helper
 function normalize(field: string | string[] | undefined): string | undefined {
   if (!field) return undefined;
   return Array.isArray(field) ? field[0] : field;
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  // ✅ CORS setup
+// extend res with json + status like Next.js
+function enhanceRes(res: ServerResponse) {
+  (res as any).status = (code: number) => {
+    res.statusCode = code;
+    return res;
+  };
+  (res as any).json = (obj: any) => {
+    res.setHeader("Content-Type", "application/json");
+    res.end(JSON.stringify(obj));
+  };
+  return res as ServerResponse & { status: (c: number) => any; json: (o: any) => void };
+}
+
+export default async function handler(
+  req: IncomingMessage & { method?: string },
+  resRaw: ServerResponse & { setHeader: any }
+) {
+  const res = enhanceRes(resRaw);
+
+  // ✅ CORS
   res.setHeader("Access-Control-Allow-Origin", "https://www.mtnhlth.com");
   res.setHeader("Access-Control-Allow-Credentials", "true");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
@@ -28,19 +46,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  // 🔁 Manual body parsing for URL-encoded data
+  // 🔁 Manual body parsing
   let body = "";
   await new Promise<void>((resolve, reject) => {
-    req.on("data", chunk => {
-      body += chunk.toString();
-    });
+    req.on("data", chunk => { body += chunk.toString(); });
     req.on("end", () => resolve());
     req.on("error", err => reject(err));
   });
 
   const parsed = parse(body);
-
-  // ✅ Normalize all fields
   const token = normalize(parsed.eToken);
   const amount = normalize(parsed.amount);
   const name = normalize(parsed.name);
