@@ -27,13 +27,22 @@ function enhanceRes(res: ServerResponse) {
 }
 
 export default async function handler(
-  req: IncomingMessage & { method?: string },
+  req: IncomingMessage & { method?: string; headers: any },
   resRaw: ServerResponse & { setHeader: any }
 ) {
   const res = enhanceRes(resRaw);
 
-  // ✅ CORS
-  res.setHeader("Access-Control-Allow-Origin", "https://www.mtnhlth.com");
+  // ✅ Allow multiple origins (live + sandbox preview)
+  const allowedOrigins = [
+    "https://www.mtnhlth.com", // your live Squarespace site
+    "https://bluefin-payment-server-git-sandbox-providers4654s-projects.vercel.app" // sandbox API
+  ];
+
+  const origin = req.headers.origin || "";
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  }
+
   res.setHeader("Access-Control-Allow-Credentials", "true");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
