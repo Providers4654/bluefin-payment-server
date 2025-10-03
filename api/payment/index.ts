@@ -32,16 +32,18 @@ export default async function handler(
 ) {
   const res = enhanceRes(resRaw);
 
-  // ✅ Allow multiple origins (live + sandbox preview)
+  // ✅ Allow multiple origins (live + sandbox preview + bare domain)
   const allowedOrigins = [
-    "https://www.mtnhlth.com", // your live Squarespace site
-    "https://bluefin-payment-server-git-sandbox-providers4654s-projects.vercel.app" // sandbox API
+    "https://mtnhlth.com", 
+    "https://www.mtnhlth.com",
+    "https://bluefin-payment-server-git-sandbox-providers4654s-projects.vercel.app"
   ];
 
   const origin = req.headers.origin || "";
   if (allowedOrigins.includes(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
   }
+
 
   res.setHeader("Access-Control-Allow-Credentials", "true");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
