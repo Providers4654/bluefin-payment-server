@@ -23,7 +23,10 @@ function enhanceRes(res: ServerResponse) {
     res.setHeader("Content-Type", "application/json");
     res.end(JSON.stringify(obj));
   };
-  return res as ServerResponse & { status: (c: number) => any; json: (o: any) => void };
+  return res as ServerResponse & {
+    status: (c: number) => any;
+    json: (o: any) => void;
+  };
 }
 
 export default async function handler(
@@ -32,7 +35,7 @@ export default async function handler(
 ) {
   const res = enhanceRes(resRaw);
 
-  // ✅ Allow multiple origins (live + sandbox + bare domain)
+  // ✅ Allow multiple origins (live + sandbox preview + bare domain)
   const allowedOrigins = [
     "https://mtnhlth.com",
     "https://www.mtnhlth.com",
@@ -68,25 +71,28 @@ export default async function handler(
   const token = normalize(parsed.eToken);
   const amount = normalize(parsed.amount);
   const name = normalize(parsed.name);
-  const mode = normalize(parsed.mode); // 👈 NEW field from frontend toggle
 
   if (!token || !amount) {
     return res.status(400).json({ error: "Missing token or amount" });
   }
 
   try {
-    // ✅ Choose credentials based on mode
+    // ✅ Decide endpoint + credentials based on environment
+    const env = process.env.PAYCONEX_ENV || "live";
+
     let accountId = "";
     let apiKey = "";
     let endpoint = "";
 
-    if (mode === "sandbox") {
+    if (env === "sandbox") {
       accountId = process.env.PAYCONEX_SANDBOX_ACCOUNT_ID || "";
-      apiKey = process.env.PAYCONEX_SANDBOX_API_KEY || "";
+      const id = process.env.PAYCONEX_SANDBOX_API_KEY_ID || "";
+      const secret = process.env.PAYCONEX_SANDBOX_API_KEY_SECRET || "";
+      apiKey = `${id}:${secret}`;
       endpoint = "https://sandbox.payconex.net/api/qsapi/3.8/";
     } else {
-      accountId = process.env.PAYCONEX_LIVE_ACCOUNT_ID || process.env.PAYCONEX_ACCOUNT_ID || "";
-      apiKey = process.env.PAYCONEX_LIVE_API_KEY || process.env.PAYCONEX_API_KEY || "";
+      accountId = process.env.PAYCONEX_ACCOUNT_ID || "";
+      apiKey = process.env.PAYCONEX_API_KEY || "";
       endpoint = "https://secure.payconex.net/api/qsapi/3.8/";
     }
 
@@ -100,7 +106,7 @@ export default async function handler(
     formData.append("response_format", "JSON");
     if (name) formData.append("first_name", name);
 
-    console.log(`🔁 Sending to PayConex [${mode || "live"}]:`, formData.toString());
+    console.log(`🔁 Sending to PayConex [${env}]:`, formData.toString());
 
     const response = await fetch(endpoint, {
       method: "POST",
