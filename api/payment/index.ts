@@ -32,18 +32,17 @@ export default async function handler(
 ) {
   const res = enhanceRes(resRaw);
 
-  // ✅ Allow multiple origins (live + sandbox preview + bare domain)
+  // ✅ Allow multiple origins (live + sandbox preview)
   const allowedOrigins = [
-    "https://mtnhlth.com", 
+    "https://mtnhlth.com",
     "https://www.mtnhlth.com",
-    "https://bluefin-payment-server-git-sandbox-providers4654s-projects.vercel.app"
+    "https://bluefin-payment-server-git-sandbox-providers4654s-projects.vercel.app",
   ];
 
   const origin = req.headers.origin || "";
   if (allowedOrigins.includes(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
   }
-
 
   res.setHeader("Access-Control-Allow-Credentials", "true");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
@@ -69,22 +68,32 @@ export default async function handler(
   const token = normalize(parsed.eToken);
   const amount = normalize(parsed.amount);
   const name = normalize(parsed.name);
+  const mode = normalize(parsed.mode) || "live"; // 👈 front-end can send `mode=sandbox` or `mode=live`
 
   if (!token || !amount) {
     return res.status(400).json({ error: "Missing token or amount" });
   }
 
   try {
-    // ✅ Decide endpoint based on environment
-    const env = process.env.PAYCONEX_ENV || "live";
+    // ✅ Decide endpoint + credentials based on mode
     const endpoint =
-      env === "sandbox"
+      mode === "sandbox"
         ? "https://sandbox.payconex.net/api/qsapi/3.8/"
         : "https://secure.payconex.net/api/qsapi/3.8/";
 
+    const accountId =
+      mode === "sandbox"
+        ? process.env.PAYCONEX_SANDBOX_ACCOUNT_ID
+        : process.env.PAYCONEX_ACCOUNT_ID;
+
+    const accessKey =
+      mode === "sandbox"
+        ? `${process.env.PAYCONEX_SANDBOX_API_KEY_ID}:${process.env.PAYCONEX_SANDBOX_API_KEY_SECRET}`
+        : process.env.PAYCONEX_API_KEY;
+
     const formData = new URLSearchParams();
-    formData.append("account_id", process.env.PAYCONEX_ACCOUNT_ID || "");
-    formData.append("api_accesskey", process.env.PAYCONEX_API_KEY || "");
+    formData.append("account_id", accountId || "");
+    formData.append("api_accesskey", accessKey || "");
     formData.append("tender_type", "CARD");
     formData.append("transaction_type", "SALE");
     formData.append("transaction_amount", amount);
@@ -92,7 +101,7 @@ export default async function handler(
     formData.append("response_format", "JSON");
     if (name) formData.append("first_name", name);
 
-    console.log(`🔁 Sending to PayConex [${env}]:`, formData.toString());
+    console.log(`🔁 Sending to PayConex [${mode}]:`, formData.toString());
 
     const response = await fetch(endpoint, {
       method: "POST",
