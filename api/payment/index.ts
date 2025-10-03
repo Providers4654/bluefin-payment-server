@@ -32,7 +32,7 @@ export default async function handler(
 ) {
   const res = enhanceRes(resRaw);
 
-  // ✅ Allow multiple origins (live + sandbox preview + bare domain)
+  // ✅ Allow multiple origins (Squarespace + Preview)
   const allowedOrigins = [
     "https://mtnhlth.com",
     "https://www.mtnhlth.com",
@@ -48,13 +48,8 @@ export default async function handler(
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
-
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
+  if (req.method === "OPTIONS") return res.status(200).end();
+  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
   // 🔁 Manual body parsing
   let body = "";
@@ -68,27 +63,32 @@ export default async function handler(
   const token = normalize(parsed.eToken);
   const amount = normalize(parsed.amount);
   const name = normalize(parsed.name);
-  const mode = normalize(parsed.mode) || "live"; // 👈 new: allow sandbox/live toggle
+  const mode = normalize(parsed.mode) || "live"; // 👈 front-end tells us sandbox vs live
 
   if (!token || !amount) {
     return res.status(400).json({ error: "Missing token or amount" });
   }
 
   try {
-    // ✅ Choose credentials & endpoint based on mode
-    let endpoint = "https://secure.payconex.net/api/qsapi/3.8/";
-    let accountId = process.env.PAYCONEX_ACCOUNT_ID || "";
-    let apiKey = process.env.PAYCONEX_API_KEY || "";
+    // ✅ Use correct credentials for environment
+    const endpoint =
+      mode === "sandbox"
+        ? "https://sandbox.payconex.net/api/qsapi/3.8/"
+        : "https://secure.payconex.net/api/qsapi/3.8/";
 
-    if (mode === "sandbox") {
-      endpoint = "https://sandbox.payconex.net/api/qsapi/3.8/";
-      accountId = process.env.PAYCONEX_SANDBOX_ACCOUNT_ID || "";
-      apiKey = `${process.env.PAYCONEX_SANDBOX_API_KEY_ID}:${process.env.PAYCONEX_SANDBOX_API_KEY_SECRET}`;
-    }
+    const accountId =
+      mode === "sandbox"
+        ? process.env.PAYCONEX_SANDBOX_ACCOUNT_ID
+        : process.env.PAYCONEX_ACCOUNT_ID;
+
+    const apiKey =
+      mode === "sandbox"
+        ? process.env.PAYCONEX_SANDBOX_API_KEY
+        : process.env.PAYCONEX_API_KEY;
 
     const formData = new URLSearchParams();
-    formData.append("account_id", accountId);
-    formData.append("api_accesskey", apiKey);
+    formData.append("account_id", accountId || "");
+    formData.append("api_accesskey", apiKey || "");
     formData.append("tender_type", "CARD");
     formData.append("transaction_type", "SALE");
     formData.append("transaction_amount", amount);
