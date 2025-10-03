@@ -2,9 +2,7 @@ import { parse } from "querystring";
 import type { IncomingMessage, ServerResponse } from "http";
 
 export const config = {
-  api: {
-    bodyParser: false,
-  },
+  api: { bodyParser: false },
 };
 
 // normalize helper
@@ -23,7 +21,10 @@ function enhanceRes(res: ServerResponse) {
     res.setHeader("Content-Type", "application/json");
     res.end(JSON.stringify(obj));
   };
-  return res as ServerResponse & { status: (c: number) => any; json: (o: any) => void };
+  return res as ServerResponse & {
+    status: (c: number) => any;
+    json: (o: any) => void;
+  };
 }
 
 export default async function handler(
@@ -32,13 +33,12 @@ export default async function handler(
 ) {
   const res = enhanceRes(resRaw);
 
-  // ✅ Allow multiple origins (live + sandbox preview)
+  // ✅ Allow multiple origins
   const allowedOrigins = [
     "https://mtnhlth.com",
     "https://www.mtnhlth.com",
     "https://bluefin-payment-server-git-sandbox-providers4654s-projects.vercel.app",
   ];
-
   const origin = req.headers.origin || "";
   if (allowedOrigins.includes(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
@@ -48,52 +48,46 @@ export default async function handler(
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
-
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
+  if (req.method === "OPTIONS") return res.status(200).end();
+  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
   // 🔁 Manual body parsing
   let body = "";
   await new Promise<void>((resolve, reject) => {
-    req.on("data", chunk => { body += chunk.toString(); });
+    req.on("data", (chunk) => { body += chunk.toString(); });
     req.on("end", () => resolve());
-    req.on("error", err => reject(err));
+    req.on("error", (err) => reject(err));
   });
 
   const parsed = parse(body);
   const token = normalize(parsed.eToken);
   const amount = normalize(parsed.amount);
   const name = normalize(parsed.name);
-  const mode = normalize(parsed.mode) || "live"; // 👈 front-end can send `mode=sandbox` or `mode=live`
+  const mode = normalize(parsed.mode) || "sandbox"; // front-end will send "mode"
 
   if (!token || !amount) {
     return res.status(400).json({ error: "Missing token or amount" });
   }
 
   try {
-    // ✅ Decide endpoint + credentials based on mode
-    const endpoint =
-      mode === "sandbox"
-        ? "https://sandbox.payconex.net/api/qsapi/3.8/"
-        : "https://secure.payconex.net/api/qsapi/3.8/";
+    // ✅ Credentials: use different env vars for sandbox/live
+    let accountId = "";
+    let apiKey = "";
+    let endpoint = "";
 
-    const accountId =
-      mode === "sandbox"
-        ? process.env.PAYCONEX_SANDBOX_ACCOUNT_ID
-        : process.env.PAYCONEX_ACCOUNT_ID;
-
-    const accessKey =
-      mode === "sandbox"
-        ? `${process.env.PAYCONEX_SANDBOX_API_KEY_ID}:${process.env.PAYCONEX_SANDBOX_API_KEY_SECRET}`
-        : process.env.PAYCONEX_API_KEY;
+    if (mode === "live") {
+      accountId = process.env.PAYCONEX_ACCOUNT_ID_LIVE || "";
+      apiKey = process.env.PAYCONEX_API_KEY_LIVE || "";
+      endpoint = "https://secure.payconex.net/api/qsapi/3.8/";
+    } else {
+      accountId = process.env.PAYCONEX_ACCOUNT_ID_SANDBOX || "";
+      apiKey = process.env.PAYCONEX_API_KEY_SANDBOX || "";
+      endpoint = "https://sandbox.payconex.net/api/qsapi/3.8/";
+    }
 
     const formData = new URLSearchParams();
-    formData.append("account_id", accountId || "");
-    formData.append("api_accesskey", accessKey || "");
+    formData.append("account_id", accountId);
+    formData.append("api_accesskey", apiKey);
     formData.append("tender_type", "CARD");
     formData.append("transaction_type", "SALE");
     formData.append("transaction_amount", amount);
@@ -101,7 +95,7 @@ export default async function handler(
     formData.append("response_format", "JSON");
     if (name) formData.append("first_name", name);
 
-    console.log(`🔁 Sending to PayConex [${mode}]:`, formData.toString());
+    console.log(`🔁 Sending to PayConex [${mode}]`, formData.toString());
 
     const response = await fetch(endpoint, {
       method: "POST",
@@ -112,9 +106,7 @@ export default async function handler(
     const result = await response.json();
     console.log("✅ PayConex response:", result);
 
-    if (result.error) {
-      return res.status(400).json({ success: false, result });
-    }
+    if (result.error) return res.status(400).json({ success: false, result });
 
     return res.status(200).json({ success: true, result });
   } catch (err: any) {
