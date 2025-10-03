@@ -64,11 +64,12 @@ export default async function handler(
   }
 
   try {
-    // ✅ Pick endpoint based on environment
+    // ✅ Decide endpoint based on environment
+    const env = process.env.PAYCONEX_ENV || "live";
     const endpoint =
-      process.env.PAYCONEX_ENV === "live"
-        ? "https://secure.payconex.net/api/qsapi/3.8/"
-        : "https://sandbox.payconex.net/api/qsapi/3.8/";
+      env === "sandbox"
+        ? "https://sandbox.payconex.net/api/qsapi/3.8/"
+        : "https://secure.payconex.net/api/qsapi/3.8/";
 
     const formData = new URLSearchParams();
     formData.append("account_id", process.env.PAYCONEX_ACCOUNT_ID || "");
@@ -80,7 +81,7 @@ export default async function handler(
     formData.append("response_format", "JSON");
     if (name) formData.append("first_name", name);
 
-    console.log(`🔁 Sending to PayConex [${process.env.PAYCONEX_ENV}]`, formData.toString());
+    console.log(`🔁 Sending to PayConex [${env}]:`, formData.toString());
 
     const response = await fetch(endpoint, {
       method: "POST",
