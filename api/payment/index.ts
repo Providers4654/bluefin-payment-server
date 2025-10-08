@@ -71,10 +71,17 @@ export default async function handler(
 
   try {
     // ✅ Pick correct endpoint + credentials
-    const endpoint =
-      mode === "sandbox"
-        ? "https://sandbox.payconex.net/api/qsapi/3.8/"
-        : "https://secure.payconex.net/api/qsapi/3.8/";
+ const endpoint =
+  mode === "sandbox"
+    ? "https://cert.payconex.net/api/qsapi/3.8/"
+    : "https://secure.payconex.net/api/qsapi/3.8/";
+
+    console.log(`🌐 Using endpoint: ${endpoint}`);
+console.log(`🔧 Mode: ${mode}`);
+console.log(`🧩 Account ID: ${mode === "sandbox" ? process.env.PAYCONEX_SANDBOX_ACCOUNT_ID : process.env.PAYCONEX_ACCOUNT_ID}`);
+console.log(`🧩 API Key: ${mode === "sandbox" ? process.env.PAYCONEX_SANDBOX_API_KEY?.slice(0, 6) + "..." : process.env.PAYCONEX_API_KEY?.slice(0, 6) + "..."}`);
+
+
 
     const accountId =
       mode === "sandbox"
