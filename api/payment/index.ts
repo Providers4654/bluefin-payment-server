@@ -36,17 +36,12 @@ export default async function handler(
   const res = enhanceRes(resRaw);
 
   // ✅ Allow multiple origins (Squarespace + Preview)
-  const allowedOrigins = [
+const allowedOrigins = [
   "https://mtnhlth.com",
   "https://www.mtnhlth.com",
+  "https://dev.mtnhlth.com",
+  "https://bluefin-payment-server-git-sandbox-providers4654s-projects.vercel.app"
 ];
-
-if (
-  origin.endsWith(".mtnhlth.com") ||
-  allowedOrigins.includes(origin)
-) {
-  res.setHeader("Access-Control-Allow-Origin", origin);
-}
 
   const origin = req.headers.origin || "";
   if (allowedOrigins.includes(origin)) {
